@@ -8,19 +8,19 @@ class Tag < ActiveRecord::Base
     return tag_names if list.blank?
 
     # first, pull out the quoted tags
-    list.gsub!(/\"(.*?)\"\s*/) { tag_names << $1; "" }
+    list.gsub!(/\"(.*?)\"\s*/) { tag_names << $1; '' }
 
     # then, replace all commas with a space
-    list.gsub!(/,/, " ")
+    list.gsub!(/,/, ' ')
 
     # then, get whatever is left
     tag_names.concat(list.split(/\s/))
 
     # delete any blank tag names
-    tag_names = tag_names.delete_if { |t| t.empty? }
+    tag_names = tag_names.delete_if(&:empty?)
 
     # downcase all tags
-    tag_names = tag_names.map! { |t| t.downcase }
+    tag_names = tag_names.map!(&:downcase)
 
     # remove duplicates
     tag_names = tag_names.uniq
@@ -41,7 +41,7 @@ class Tag < ActiveRecord::Base
     if taggable_type
       conditions = sanitize_sql(["taggable_type = ?", taggable_type])
       conditions += sanitize_sql([" AND #{Tagging.table_name}.user_id = ?", user.id]) if user
-      with_scope(:find => {:select => "distinct #{Tag.table_name}.*", :joins => "left outer join #{Tagging.table_name} on #{Tagging.table_name}.tag_id = #{Tag.table_name}.id", :conditions => conditions, :group => "name"}) { yield }
+      with_scope(:find => { :select => "DISTINCT #{Tag.table_name}.*", :joins => "LEFT OUTER JOIN #{Tagging.table_name} ON #{Tagging.table_name}.tag_id = #{Tag.table_name}.id", :conditions => conditions, :group => 'name' }) { yield }
     else
       yield
     end

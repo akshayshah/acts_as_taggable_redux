@@ -8,7 +8,7 @@ module ActiveRecord
       module ClassMethods
         def acts_as_taggable(options = {})
           has_many :taggings, :as => :taggable, :dependent => :destroy, :include => :tag
-          has_many :tags, :through => :taggings, :order => 'LOWER(name) asc', :select => "DISTINCT tags.*"
+          has_many :tags, :through => :taggings, :order => 'LOWER(name) asc', :select => 'DISTINCT tags.*'
 
           after_save :update_tags
 
@@ -19,7 +19,7 @@ module ActiveRecord
 
       module SingletonMethods
         # Pass a tag string, returns taggables that match the tag string.
-        # 
+        #
         # Options:
         #   :match - Match taggables matching :all or :any of the tags, defaults to :any
         #   :user  - Limits results to those owned by a particular user
@@ -40,10 +40,10 @@ module ActiveRecord
           conditions += sanitize_sql([" AND #{table_name}_taggings.user_id = ?", options[:user]]) if options[:user]
 
           find_parameters = {
-            :joins  =>  "LEFT OUTER JOIN #{Tagging.table_name} #{table_name}_taggings ON #{table_name}_taggings.taggable_id = #{table_name}.#{primary_key} AND #{table_name}_taggings.taggable_type = '#{name}' " +
-                        "LEFT OUTER JOIN #{Tag.table_name} #{table_name}_tags ON #{table_name}_tags.id = #{table_name}_taggings.tag_id",
+            :joins => "LEFT OUTER JOIN #{Tagging.table_name} #{table_name}_taggings ON #{table_name}_taggings.taggable_id = #{table_name}.#{primary_key} AND #{table_name}_taggings.taggable_type = '#{name}' " +
+                      "LEFT OUTER JOIN #{Tag.table_name} #{table_name}_tags ON #{table_name}_tags.id = #{table_name}_taggings.tag_id",
             :conditions => conditions,
-            :group  =>  group,
+            :group => group,
             :order => options[:order]
           }
 
@@ -51,7 +51,7 @@ module ActiveRecord
         end
 
         # Pass a tag string, returns taggables that match the tag string for a particular user.
-        # 
+        #
         # Options:
         #   :match - Match taggables matching :all or :any of the tags, defaults to :any
         def find_tagged_with_by_user(tags, user, options = {})
@@ -68,7 +68,7 @@ module ActiveRecord
         # :order - SQL Order how to order the tags. Defaults to "count DESC, tags.name".
         # :match - Match taggables matching :all or :any of the tags, defaults to :any
         def find_related_tags(tags, options = {})
-          #duplicated work, the tags are parsed twice. I need to elimidate this by making find_tagged_with 
+          #duplicated work, the tags are parsed twice. I need to elimidate this by making find_tagged_with
           #accept an array of tags and not just a string
           parsed_tags = Tag.parse(tags)
           related_models = find_tagged_with(tags, :match => options.delete(:match))
@@ -83,7 +83,7 @@ module ActiveRecord
 AND #{Tagging.table_name}.taggable_id IN (#{related_ids})
 AND #{Tagging.table_name}.tag_id = #{Tag.table_name}.id",
             :order => options[:order] || "count DESC, #{Tag.table_name}.name",
-            :group => "#{Tag.table_name}.id, #{Tag.table_name}.name HAVING #{Tag.table_name}.name NOT IN (#{parsed_tags.map { |n| quote_value(n) }.join(",")})"
+            :group => "#{Tag.table_name}.id, #{Tag.table_name}.name HAVING #{Tag.table_name}.name NOT IN (#{parsed_tags.map { |n| quote_value(n) }.join(',')})"
           }))
         end
       end
@@ -102,10 +102,10 @@ AND #{Tagging.table_name}.tag_id = #{Tag.table_name}.id",
 
         def tag_list(user = nil)
           unless user
-            result = tags.collect { |tag| tag.name.include?(" ") ? %("#{tag.name}") : tag.name }.join(" ")
+            result = tags.collect { |tag| tag.name.include?(' ') ? %("#{tag.name}") : tag.name }.join(' ')
           else
             #TODO: make it work if I pass in an int instead of a user object
-            tags.find(:all, :conditions => ["#{Tagging.table_name}.user_id = ?", user.id]).collect { |tag| tag.name.include?(" ") ? %("#{tag.name}") : tag.name }.uniq.join(" ")
+            tags.find(:all, :conditions => ["#{Tagging.table_name}.user_id = ?", user.id]).collect { |tag| tag.name.include?(' ') ? %("#{tag.name}") : tag.name }.uniq.join(' ')
           end
         end
 
