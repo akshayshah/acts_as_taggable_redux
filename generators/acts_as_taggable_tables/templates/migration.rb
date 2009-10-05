@@ -11,15 +11,17 @@ class AddActsAsTaggableTables < ActiveRecord::Migration
       t.column :tag_id, :integer
       t.column :taggable_id, :integer
       t.column :taggable_type, :string
-      t.column :user_id, :integer
+      t.column :owner_id, :integer
+
+      t.foreign_key :owner_id, :owners, :id
     end
 
     # Find objects for a tag
     add_index :taggings, [:tag_id, :taggable_type]
-    add_index :taggings, [:user_id, :tag_id, :taggable_type]
+    add_index :taggings, [:owner_id, :tag_id, :taggable_type]
     # Find tags for an object
     add_index :taggings, [:taggable_id, :taggable_type]
-    add_index :taggings, [:user_id, :taggable_id, :taggable_type]
+    add_index :taggings, [:owner_id, :taggable_id, :taggable_type]
   end
 
   def self.down

@@ -8,7 +8,7 @@ module ActiveRecord
       module ClassMethods
         def acts_as_taggable(options = {})
           has_many :taggings, :as => :taggable, :dependent => :destroy, :include => :tag
-          has_many :tags, :through => :taggings, :order => 'LOWER(name) asc', :select => 'DISTINCT tags.*'
+          has_many :tags, :through => :taggings, :order => 'LOWER(name) ASC', :select => 'DISTINCT tags.*'
 
           after_save :update_tags
 
@@ -22,7 +22,7 @@ module ActiveRecord
         #
         # Options:
         #   :match - Match taggables matching :all or :any of the tags, defaults to :any
-        #   :user  - Limits results to those owned by a particular user
+        #   :owner  - Limits results to those owned by a particular owner
         def find_tagged_with(tags, options = {})
           tagged_with_scope(tags, options) do
             find(:all, :select =>  "DISTINCT #{table_name}.*")
@@ -30,14 +30,14 @@ module ActiveRecord
         end
 
         def tagged_with_scope(tags, options={})
-          options.assert_valid_keys([:match, :order, :user])
+          options.assert_valid_keys([:match, :order, :owner])
 
           tags = Tag.parse(tags)
           return [] if tags.empty?
 
           group = "#{table_name}_taggings.taggable_id HAVING COUNT(#{table_name}_taggings.taggable_id) >= #{tags.size}" if options[:match] == :all
           conditions = sanitize_sql(["#{table_name}_tags.name IN (?)", tags])
-          conditions += sanitize_sql([" AND #{table_name}_taggings.user_id = ?", options[:user]]) if options[:user]
+          conditions += sanitize_sql([" AND #{table_name}_taggings.owner_id = ?", options[:owner]]) if options[:owner]
 
           find_parameters = {
             :joins => "LEFT OUTER JOIN #{Tagging.table_name} #{table_name}_taggings ON #{table_name}_taggings.taggable_id = #{table_name}.#{primary_key} AND #{table_name}_taggings.taggable_type = '#{name}' " +
@@ -50,13 +50,13 @@ module ActiveRecord
           with_scope(:find => find_parameters) { yield }
         end
 
-        # Pass a tag string, returns taggables that match the tag string for a particular user.
+        # Pass a tag string, returns taggables that match the tag string for a particular owner.
         #
         # Options:
         #   :match - Match taggables matching :all or :any of the tags, defaults to :any
-        def find_tagged_with_by_user(tags, user, options = {})
+        def find_tagged_with_by_owner(tags, owner, options = {})
           options.assert_valid_keys([:match, :order])
-          find_tagged_with(tags, {:match => options[:match], :order => options[:order], :user => user})
+          find_tagged_with(tags, { :match => options[:match], :order => options[:order], :owner => owner })
         end
 
         # Returns an array of related tags.
@@ -95,33 +95,33 @@ AND #{Tagging.table_name}.tag_id = #{Tag.table_name}.id",
           end
         end
 
-        def user_id=(new_user_id)
-          @new_user_id = new_user_id
-          super(new_user_id)
+        def owner_id=(new_owner_id)
+          @new_owner_id = new_owner_id
+          super(new_owner_id)
         end
 
-        def tag_list(user = nil)
-          unless user
+        def tag_list(owner = nil)
+          unless owner
             result = tags.collect { |tag| tag.name.include?(' ') ? %("#{tag.name}") : tag.name }.join(' ')
           else
-            #TODO: make it work if I pass in an int instead of a user object
-            tags.find(:all, :conditions => ["#{Tagging.table_name}.user_id = ?", user.id]).collect { |tag| tag.name.include?(' ') ? %("#{tag.name}") : tag.name }.uniq.join(' ')
+            #TODO: make it work if I pass in an int instead of an Owner object
+            tags.find(:all, :conditions => ["#{Tagging.table_name}.owner_id = ?", owner.id]).collect { |tag| tag.name.include?(' ') ? %("#{tag.name}") : tag.name }.uniq.join(' ')
           end
         end
 
         def update_tags
           if @new_tag_list
             Tag.transaction do
-              unless @new_user_id
+              unless @new_owner_id
                 taggings.destroy_all
               else
-                taggings.find(:all, :conditions => "user_id = #{@new_user_id}").each do |tagging|
+                taggings.find(:all, :conditions => "owner_id = #{@new_owner_id}").each do |tagging|
                   tagging.destroy
                 end
               end
 
               Tag.parse(@new_tag_list).each do |name|
-                Tag.find_or_create_by_name(name).tag(self, @new_user_id)
+                Tag.find_or_create_by_name(name).tag(self, @new_owner_id)
               end
 
               tags.reset

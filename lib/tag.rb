@@ -35,21 +35,21 @@ class Tag < ActiveRecord::Base
   #
   # If no parameter is given, the scope does not take effect.
   #
-  # pass in a user id to have it scope by user_id as well
+  # pass in an owner id to have it scope by owner_id as well
 
-  def self.with_type_scope(taggable_type, user = nil)
+  def self.with_type_scope(taggable_type, owner = nil)
     if taggable_type
-      conditions = sanitize_sql(["taggable_type = ?", taggable_type])
-      conditions += sanitize_sql([" AND #{Tagging.table_name}.user_id = ?", user.id]) if user
+      conditions = sanitize_sql(['taggable_type = ?', taggable_type])
+      conditions += sanitize_sql([" AND #{Tagging.table_name}.owner_id = ?", owner.id]) if owner
       with_scope(:find => { :select => "DISTINCT #{Tag.table_name}.*", :joins => "LEFT OUTER JOIN #{Tagging.table_name} ON #{Tagging.table_name}.tag_id = #{Tag.table_name}.id", :conditions => conditions, :group => 'name' }) { yield }
     else
       yield
     end
   end
 
-  # Tag a taggable with this tag, optionally add user to add owner to tagging
-  def tag(taggable, user_id = nil)
-    taggings.create :taggable => taggable, :user_id => user_id
+  # Tag a taggable with this tag, optionally add owner to add owner to tagging
+  def tag(taggable, owner_id = nil)
+    taggings.create :taggable => taggable, :owner_id => owner_id
     taggings.reset
     @tagged = nil
   end

@@ -10,18 +10,20 @@ ActiveRecord::Schema.define :version => 0 do
     t.column :tag_id, :integer
     t.column :taggable_id, :integer
     t.column :taggable_type, :string
-    t.column :user_id, :integer
+    t.column :owner_id, :integer
+
+    t.foreign_key :owner_id, :owners, :id
   end
   add_index :taggings, [:tag_id, :taggable_type]
-  add_index :taggings, [:user_id, :tag_id, :taggable_type]
+  add_index :taggings, [:owner_id, :tag_id, :taggable_type]
   add_index :taggings, [:taggable_id, :taggable_type]
-  add_index :taggings, [:user_id, :taggable_id, :taggable_type]
+  add_index :taggings, [:owner_id, :taggable_id, :taggable_type]
 
   create_table :things, :force => true do |t|
     t.column :name, :string
   end
 
-  create_table :users, :force => true do |t|
-    t.column :username, :string
+  create_table :owners, :force => true do |t|
+    t.column :name, :string
   end
 end
